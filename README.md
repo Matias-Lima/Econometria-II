@@ -1,0 +1,2 @@
+# Econometria II
+ Exercícios
