@@ -1,0 +1,371 @@
+---
+title: "Exercicio - 2"
+date: "2023-10-27"
+output:
+  html_document:
+    df_print: paged
+---
+Matias Antonio Lima - 12692583
+João Marrey Mendonça - 12511600 
+Anthony Dewey Adams - 12511465
+
+```{r}
+options(repos = c(CRAN = "https://cran.r-project.org"))
+```
+
+```{r}
+#install.packages("tinytex")
+#tinytex::install_tinytex(force = TRUE)
+#tinytex:::install_prebuilt()
+
+```
+
+```{r}
+#utils::install.packages("haven")
+#utils::contrib.url(repos, "source")
+```
+
+
+#Instalação dos pacotes
+
+```{r}
+install.packages("AER")
+install.packages("haven")
+install.packages("tidyverse")
+install.packages("xtable")
+install.packages("knitr")
+install.packages("dplyr")
+install.packages("broom")
+install.packages("stargazer")
+install.packages("corrplot")
+install.packages("readxl")
+install.packages("magrittr")
+install.packages("ggplot2")
+install.packages("sjmisc")
+install.packages("readr")
+install.packages("tableone")
+install.packages("ggcorrplot")
+
+```
+
+
+```{r}
+
+library("haven")
+library("tidyverse")
+library("readxl")
+library("stargazer")
+library("magrittr") 
+#Para usar o pipes
+# é usado principalmente para encadear operações em objetos de dados 
+# é usado para acessar variaveis dentro de objetos de dados. 
+library("ggplot2")
+library("sjmisc")
+library("readr")
+library("tableone")
+library("broom")
+library("AER")
+library("dplyr")
+library("corrplot")
+library("ggcorrplot")
+
+
+```
+
+
+1 Questão --------------------------------------
+
+```{r}
+data = read.csv("C:/Users/limam/Downloads/base_exerciciopratico2.csv", sep=";")
+```
+
+Podemos resumir as informações das observações da base de dados:
+
+```{r}
+summary(data)
+```
+
+Podemos ver que a média de idade do grupo de mulheres é de 42.54 anos, uma educação média de 12.29 anos, um salário médio de 17.23, uma média de horas de trabalho de 740.6 e uma experiência media de 10.63 anos, além disso vemos que o salário dos maridos é maior, com uma média de 44.5457, trablham mais, em média 2267 horas, mas sua educação é próxima da esposa, em média 12.49 anos, eles também são um pouco mais velhos, com uma idade média de 45.12 anos .
+No entanto, no grupo há mulheres que trabalham e outras que não trabalham, isso se dá porque diversas mulheres acabam ocupando postos de trabalho doméstico, que é uma forma de trabalho, mas não é remunerado. Assim, como nosso objetivo será estimar o efeito da educação sobre o salário, esse grupo não poderá entrar na análise, porque, por mais que possuam diferentes níveis de educação, todos possuem um salário de 0, não sendo possível utilizar esse grupo na nossa análise, já que não será possível analisar efeitos sobre o salário
+
+Agora, tiremos o grupo que não trabalha da base, e analisar o efeito apenas sobre quem trabalha:
+
+```{r}
+data_workers = filter(data, forcatrabalho== 1)
+summary(data_workers)
+```
+
+Podemos ver que as estatísticas da base mudaram bastante para as mulheres, o salário médio subiu para 30.3074, a experiência média para 13.04 anos, média de horas trabalhadas para 1302.9 (obviamente, porque tiramos as observações que não participavam no mercado de trabalho), enquanto a idade e educação média não mudaram muito, sendo de 41.97 e 12.66 anos respectivamente. Os valores para os maridos também não mudaram muito, com salário médio de 44.394, média de horas trabalhadas de 2233, educação média de 12.61 horas, e idade média de 44.61 anos.
+Com esse novo grupo que participa do mercado de trabalho, poderemos estimar o real efeito da educação sobre o salário, já que com pessoas que não trabalham obviamente não há efeito, com o salário , e portanto o efeito sobre o salário, sendo sempre zero. Podemos chamar isso de efeito heterogêneo de tratamento, já que cada grupo terá um efeito do tratamento (educação) diferente sobre o resultado (salário). Nós estimaremos o efeito apenas para o grupo que trabalha, por ser o grupo que nos interessa saber o efeito, mas o resultado, apesar de ter validade interna (para o grupo de mulheres casadas que trabalham), não terá validade para quem não trabalha, obviamente. Mesmo se considerarmos apenas quem trabalha, não consiguimos garantir que terá válidade para homens, já que mulheres e homens podem ter efeitos heterogêneos de tratamento e estimamos apenas para mulheres. Também não poderemos garantir validade para mulheres não casadas, pois estimamos apenas para casadas, e pode haver efeitos heterogêneos para os dois grupos, assim como para homens e mulheres. Sendo assim, podemos apenas garantir validade interna para o efeito estimado, isto é, podemos garantir validade para o grupo de mulheres, casadas e que participam do mercado de trabalho.
+
+
+2 Questão ----------------------------------
+
+Considere o modelo:
+
+    log(salario) = β0 + β1educacao + β2exper + β3(exper)2 + ε
+    A variável educação pode ser endógena? Justifique.
+    
+
+Podemos fazer a regressão proposta:
+    
+    log(salario) = β0 + β1educacao + β2exper + β3(exper^2) + ε
+
+
+Para isso primeiro crio a coluna log(salario) na base.
+```{r}
+data_workers$log_salario = log(data_workers$salario)
+summary(data_workers$log_salario)
+```
+
+Agora crio a coluna de exper^2 na base
+```{r}
+data_workers$exper2 = data_workers$exper^2
+summary(data_workers$exper2)
+```
+
+Agora podemos rodar a regressão
+```{r}
+ols_reg = lm(log(salario) ~ educacao + exper + exper2, data=data_workers)
+summary(ols_reg)
+```
+
+Vemos que todos os coeficientes, menos o de exper^2 (β3), são significantes individualmente. Também podemos ver que um ano a mais de educação parece aumentar o salário médio em 0.0873524.
+Mas temos um problema mais grave que a significância de β3, a variável educacao tem um claro problema de endogeneidade, com um confounder não observado e presente, a habilidade pessoal, essa variável influencia em quanta educação uma pessoa vai obter, porque pessoas com mais habilidade conseguem obter mais educação (entrar em uma faculdade por exemplo), mas também influencia o salário da pessoa após a educação, pois pessoas com mais habilidade teriam em média um salário maior que pessoas com pouca habilidade e mesma educação. Assim, nossa estimativa provavelmente sobreestima o efeito de educação sobre o salário. Então, para saber o real efeito da educação sozinha sobre o salário final, precisamos isolar o efeito da habilidade na regressão. A fórmula do viés no estimador de OLS quando há uma variável omitida é:
+sendo Ω o coeficiente de Xi, Ὥ o seu estimador e Θ o coeficiente de Xj sobre a variável dependente
+E(Ὥ/X) = Ω + (COV[Xi, Xj] / VAR(Xi)) * Θ
+Ou seja, o viés será igual à covariância de Xi com Xj, dividido pela variância de Xi, vezes o efeito de Xj sobre Y. Para acabar com esse efeito, poderíamos incluir Xj (nesse caso habilidade) na regressão, que isolaria o efeito de Xj do de Xi. No entanto, como não observamos essa variável, não podemos usar esse método, o que faremos então é usar uma outra variável, chamada de instrumental, para poder estimar o efeito real.
+
+----------------
+
+```{r}
+#Pequena comparação realizada para mostrar os resultados da regressão caso não houvesse feita a separação do grupo.
+
+
+# Em seguida, ajuste o modelo de regressão
+modelo <- lm(log(salario + 0.01) ~ educacao + exper + I(exper^2), data = data)
+
+# Imprima os resultados
+summary(modelo)
+
+```
+
+
+iii. Uma forma de lidar com a endogeneidade é a variável instrumental.
+
+(a) Explique o modelo e as hipóteses.
+
+
+O modelo apresentado é uma forma de modelo de regressão no qual o logaritmo do salário é modelado em relação a várias variáveis independentes, incluindo a educação, a experiência e o quadrado da experiência. No entanto, a variável educação pode ser considerada endógena se estiver correlacionada com o termo de erro (ε). Isso significa que a educação pode ser afetada por outros fatores não observados no modelo, resultando em uma correlação entre a variável educacional e o termo de erro. Se a variável educacional é endógena, isso pode levar a problemas de viés devido à correlação entre as variáveis explicativas e o termo de erro.
+
+Para tentar contornar esse problema, podemos tentar utilizar VI.Para que isso seja feita, devemos atender uma série de hipóteses.
+
+Essas hipóteses da variável instrumental são fundamentais para garantir a validade dos resultados obtidos por meio do método de variáveis instrumentais. Aqui estão as principais hipóteses que devem ser atendidas para garantir a validade da variável instrumental:
+
+    Relevância: A variável instrumental deve estar correlacionada com a variável endógena. Em outras palavras, deve haver uma relação significativa entre a variável instrumental e a variável endógena no modelo. Se a variável instrumental não tiver correlação com a variável endógena, ela não poderá explicar a variação na variável endógena e, portanto, não será uma variável instrumental válida.
+
+    Exogeneidade: A variável instrumental não deve estar correlacionada com o termo de erro no modelo. Se houver correlação entre a variável instrumental e o termo de erro, isso pode levar a resultados enviesados. A exogeneidade garante, caso as outras hipóteses sejam atendidas que a variável instrumental afete a variável endógena apenas por meio de sua influência na variável independente.
+
+    Exclusão: A variável instrumental não deve ter efeitos diretos sobre a variável dependente. Isso implica que a variável instrumental afeta a variável endógena apenas por meio de sua correlação com a variável endógena, e não por meio de outros canais.
+
+
+```{r}
+
+#analise de correlação e regressão de primeiro estágio.
+
+```
+
+(b) Proponha uma variável instrumental. Explique como ela é correlacionada com
+a variável endógena e demonstre se ela é possível de ser utilizada como um
+instrumento
+
+
+Para escolher uma variável Intrumental vamos fazer uma analise descritiva e alguns calculos para ver quais atendem os requesitos.
+
+
+    Análises descritiva da base de dados.
+
+
+```{r}
+# Correlação entre variáveis
+correlation_matrix <- cor(data_workers)
+print(correlation_matrix)
+
+# Análise descritiva
+# Média, mediana, desvio padrão para variáveis numéricas
+summary_data <- data_workers %>% 
+  select(rendatribut_fam, impostorenda, marido_irmaos, irmaos, salario, marido_horastrabalho, marido_salario, renda_familiar, educacao) %>% 
+  summary()
+print(summary_data)
+
+
+```
+```{r}
+corr_dos_dados <- data %>%
+  cor() %>%
+  corrplot(method="circle")
+```
+
+
+
+```{r}
+
+# Modelo de primeiro estágio
+primeiro_estagio <- lm(educacao ~ marido_educacao + exper + I(exper^2), data = data_workers)
+
+# Imprima os resultados do primeiro estágio
+summary(primeiro_estagio)
+
+```
+
+
+Com base nas análises escolhemos a var. - Educação do marido, pois acreditamos que ela atende as hipóteses de VI, descritas acima.
+
+Relevância: A educação do marido pode ser considerada uma variável instrumental relevante para explicar a educação da esposa. Isso se deve ao fato de que a educação do marido pode influenciar as oportunidades econômicas e de aprendizado disponíveis para a família como um todo, o que, por sua vez, pode afetar a educação da esposa.
+
+Exogeneidade: Partimos do pressuposto de que a educação do marido não está correlacionada com quaisquer fatores não observados que possam influenciar diretamente a educação da esposa. Acredita-se que a educação do marido afeta a educação da esposa principalmente por meio de seu impacto no potencial de ganhos familiar e não por outros fatores não considerados. Se a educação do marido não estiver ligada a esses fatores não observados, ela pode ser considerada exógena em relação ao modelo, fortalecendo a validade da utilização da variável instrumental.
+
+Exclusão: Garantimos que a variável "educação do marido" não tenha efeitos diretos sobre a educação da esposa que não sejam mediados pelo potencial de ganhos familiar ou outros fatores associados à educação do marido. Se a influência da educação do marido sobre a educação da esposa for principalmente devido ao seu efeito no potencial de ganhos familiar ou em fatores econômicos familiares mais amplos, a variável instrumental pode ser considerada excludente. Isso implica que a educação do marido afeta a educação da esposa indiretamente, por meio de sua relação com o potencial de ganhos familiar.
+
+
+
+3.c)
+
+    Estime pelo método de variáveis instrumentais. Apresentando os resultados e
+    as explicações de todos os resultados encontrados.
+
+
+```{r}
+data_workers$educ_pred <- primeiro_estagio$fitted.values
+
+estagio2 <- lm(log(salario) ~ educ_pred,
+         data = data_workers)
+
+summary(estagio2)
+```
+
+
+
+```{r}
+
+estagio2_1 <- lm(log(salario) ~ educ_pred + exper + exper2,
+         data = data_workers)
+
+summary(estagio2_1)
+```
+
+
+```{r}
+
+estagio2_2 <- lm(log(salario) ~ educ_pred + exper + I(exper^2) + horastrabalho + educacao_mae + educacao_pai,
+         data = data_workers)
+
+summary(estagio2_2)
+
+```
+
+
+```{r}
+#Resumo das informações
+stargazer(ols_reg, primeiro_estagio, estagio2, estagio2_2,
+          type = "text",
+          column.labels = c("OLS", "Primeiro Estágio", "2estagio", "estagio2_mais")
+)
+```
+
+
+Resultados:
+
+    Educação (educacao): O coeficiente associado à variável educacao é 0.087, o que indica que um aumento de uma unidade no nível de educação está associado a um aumento de 0.087 na variável dependente, mantendo todas as outras variáveis constantes. O valor é significativo a um nível de 1%.
+
+    Educação do Marido (marido_educacao): O coeficiente associado à variável marido_educacao é 0.448. Isso sugere que um aumento de uma unidade na educação do marido está associado a um aumento de 0.448 no valor da educação, mantendo todas as outras variáveis constantes. O valor é significativo a um nível de 1%.
+
+    Experiência (exper): O coeficiente associado à variável exper é 0.058, na OLS. Isso indica que um ano a mais de experiência está associado a um aumento de 0.058 no logaritmo do salário, mantendo todas as outras variáveis constantes. O valor é significativo a um nível de 5%.
+
+    Experiência ao quadrado (exper2): Parece que a variável exper2 não é estatisticamente significativa, já que o valor p é maior que 0.05.
+
+Aqui adicionamos mais algumas variáveis no modelo 4.
+
+    Horas de Trabalho (horastrabalho): O coeficiente associado é muito pequeno (0.00004) e não é estatisticamente significativo, indicando que não há uma relação forte entre as horas de trabalho e o logaritmo do salário.
+
+    Educação da mãe (educacao_mae) e Educação do pai (educacao_pai): Ambos os coeficientes não são estatisticamente significantes, pois os valores p são maiores que 0.05.
+   
+Olhando para os modelo com a VI, temos que:
+    
+    Educação prevista (educ_pred): Os coeficientes são 0.046 e 0.032, indicando um pequeno efeito positivo na variável dependente. No entanto, os valores p indicam que não é estatisticamente significante.
+
+Portanto, com base nessas informações, não podemos afirmar que a variável "educ_pred" tem um efeito estatisticamente significativo sobre a variável dependente (log(salario)), dado o conjunto de variáveis independentes incluídas no modelo. Isso sugere que a variável "educ_pred" pode não ser um preditor forte do logaritmo do salário com base nas outras variáveis incluídas no modelo.
+    
+
+
+
+
+--------------------------------------
+Observação: Quando consideramos o processo para todos os dados da amostra, isto é, tanto para mulheres que ganham salários quanto para aquelas que não ganham, a variável de interesse (VI) se torna estatisticamente significativa a um nível de confiança de 0.001, indicado por '**'. Aqui temos um exemplo do paradoxo de simpsom como que foi abordados na primeiras aulas. Quando grupos de dados mostram uma tendência particular, mas a tendência é revertida quando os dados são quebrados em grupos mais detalhados 
+
+
+
+```{r}
+# Modelo de primeiro estágio
+primeiro_estagio_total <- lm(educacao ~ marido_educacao + exper + I(exper^2), data = data)
+
+# Imprima os resultados do primeiro estágio
+summary(primeiro_estagio_total)
+
+data$educ_pred <- primeiro_estagio_total$fitted.values
+
+```
+
+```{r}
+# Em seguida, ajuste o modelo de regressão
+modelo_total <- lm(log(salario + 0.01) ~ educ_pred, data = data)
+
+# Imprima os resultados
+summary(modelo_total)
+
+```
+
+
+--------------------------------
+
+
+
+
+
+
+
+3.d) 
+
+      Seria possível adicionar dois instrumentos? E comparando os dois, qual deles
+      seria o melhor para ser utilizado?
+
+```{r}
+
+
+
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
